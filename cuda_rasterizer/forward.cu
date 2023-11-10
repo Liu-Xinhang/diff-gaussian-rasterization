@@ -177,7 +177,8 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	float4* conic_opacity,
 	const dim3 grid,
 	uint32_t* tiles_touched,
-	bool prefiltered)
+	bool prefiltered,
+	bool is_mask)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P)
@@ -384,8 +385,21 @@ void FORWARD::render(
 	float* final_T,
 	uint32_t* n_contrib,
 	const float* bg_color,
-	float* out_color)
+	float* out_color, bool is_mask)
 {
+	if (is_mask)
+		renderCUDA<NUM_CHANNELS_FOR_MASK> << <grid, block >> > (
+			ranges,
+			point_list,
+			W, H,
+			means2D,
+			colors,
+			conic_opacity,
+			final_T,
+			n_contrib,
+			bg_color,
+			out_color);
+	else {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
 		point_list,
@@ -397,6 +411,7 @@ void FORWARD::render(
 		n_contrib,
 		bg_color,
 		out_color);
+	}
 }
 
 void FORWARD::preprocess(int P, int D, int M,
@@ -423,7 +438,8 @@ void FORWARD::preprocess(int P, int D, int M,
 	float4* conic_opacity,
 	const dim3 grid,
 	uint32_t* tiles_touched,
-	bool prefiltered)
+	bool prefiltered,
+	bool is_mask)
 {
 	preprocessCUDA<NUM_CHANNELS> << <(P + 255) / 256, 256 >> > (
 		P, D, M,
@@ -450,6 +466,7 @@ void FORWARD::preprocess(int P, int D, int M,
 		conic_opacity,
 		grid,
 		tiles_touched,
-		prefiltered
+		prefiltered,
+		is_mask
 		);
 }

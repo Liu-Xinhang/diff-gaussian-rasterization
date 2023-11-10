@@ -217,7 +217,8 @@ int CudaRasterizer::Rasterizer::forward(
 	const bool prefiltered,
 	float* out_color,
 	int* radii,
-	bool debug)
+	bool debug,
+	bool is_mask)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
 	const float focal_x = width / (2.0f * tan_fovx);
@@ -239,9 +240,16 @@ int CudaRasterizer::Rasterizer::forward(
 	char* img_chunkptr = imageBuffer(img_chunk_size);
 	ImageState imgState = ImageState::fromChunk(img_chunkptr, width * height);
 
-	if (NUM_CHANNELS != 3 && colors_precomp == nullptr)
-	{
-		throw std::runtime_error("For non-RGB, provide precomputed Gaussian colors!");
+	if (is_mask) {
+		if (NUM_CHANNELS_FOR_MASK != 1 && colors_precomp == nullptr)
+		{
+			throw std::runtime_error("For mask, NUM_CHANNELS must be 1 and you must provide precomputed Gaussian colors!");
+		}
+	} else {
+		if (NUM_CHANNELS != 3 && colors_precomp == nullptr)
+		{
+			throw std::runtime_error("For non-RGB, provide precomputed Gaussian colors!");
+		}
 	}
 
 	// Run preprocessing per-Gaussian (transformation, bounding, conversion of SHs to RGB)
@@ -269,7 +277,7 @@ int CudaRasterizer::Rasterizer::forward(
 		geomState.conic_opacity,
 		tile_grid,
 		geomState.tiles_touched,
-		prefiltered
+		prefiltered, is_mask
 	), debug)
 
 	// Compute prefix sum over full list of touched tile counts by Gaussians
@@ -330,7 +338,7 @@ int CudaRasterizer::Rasterizer::forward(
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		background,
-		out_color), debug)
+		out_color, is_mask), debug)
 
 	return num_rendered;
 }
