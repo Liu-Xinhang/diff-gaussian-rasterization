@@ -318,7 +318,7 @@ int CudaRasterizer::Rasterizer::forward(
 	CHECK_CUDA(, debug)
 
 	// Let each tile blend its range of Gaussians independently in parallel
-	const float* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb;
+	const float* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb; // 在这里把颜色变成了feature_ptr,不管是colors_precomp的也好，还是从sh转换来的也好
 	CHECK_CUDA(FORWARD::render(
 		tile_grid, block,
 		imgState.ranges,

@@ -94,7 +94,7 @@ RasterizeGaussiansCUDA(
 		background.contiguous().data<float>(),
 		W, H,
 		means3D.contiguous().data<float>(),
-		sh.contiguous().data_ptr<float>(),
+		sh.contiguous().data_ptr<float>(), // 这两项就是原来来计算颜色的，要么从sh算，要么从下面的color算
 		colors.contiguous().data<float>(), 
 		opacity.contiguous().data<float>(), 
 		scales.contiguous().data_ptr<float>(),
