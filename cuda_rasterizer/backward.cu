@@ -412,7 +412,8 @@ renderCUDA(
 	float3* __restrict__ dL_dmean2D,
 	float4* __restrict__ dL_dconic2D,
 	float* __restrict__ dL_dopacity,
-	float* __restrict__ dL_dcolors)
+	float* __restrict__ dL_dcolors,
+	bool is_mask)
 {
 	// We rasterize again. Compute necessary block info.
 	auto block = cg::this_thread_block();
@@ -601,24 +602,26 @@ void BACKWARD::preprocess(
 	// Propagate gradients for remaining steps: finish 3D mean gradients,
 	// propagate color gradients to SH (if desireD), propagate 3D covariance
 	// matrix gradients to scale and rotation.
+	
 	preprocessCUDA<NUM_CHANNELS> << < (P + 255) / 256, 256 >> > (
-		P, D, M,
-		(float3*)means3D,
-		radii,
-		shs,
-		clamped,
-		(glm::vec3*)scales,
-		(glm::vec4*)rotations,
-		scale_modifier,
-		projmatrix,
-		campos,
-		(float3*)dL_dmean2D,
-		(glm::vec3*)dL_dmean3D,
-		dL_dcolor,
-		dL_dcov3D,
-		dL_dsh,
-		dL_dscale,
-		dL_drot);
+	P, D, M,
+	(float3*)means3D,
+	radii,
+	shs,
+	clamped,
+	(glm::vec3*)scales,
+	(glm::vec4*)rotations,
+	scale_modifier,
+	projmatrix,
+	campos,
+	(float3*)dL_dmean2D,
+	(glm::vec3*)dL_dmean3D,
+	dL_dcolor,
+	dL_dcov3D,
+	dL_dsh,
+	dL_dscale,
+	dL_drot);
+
 }
 
 void BACKWARD::render(
@@ -636,9 +639,11 @@ void BACKWARD::render(
 	float3* dL_dmean2D,
 	float4* dL_dconic2D,
 	float* dL_dopacity,
-	float* dL_dcolors)
+	float* dL_dcolors,
+	bool is_mask)
 {
-	renderCUDA<NUM_CHANNELS> << <grid, block >> >(
+	if(is_mask) {
+	renderCUDA<NUM_CHANNELS_FOR_MASK> << <grid, block >> >(
 		ranges,
 		point_list,
 		W, H,
@@ -652,6 +657,27 @@ void BACKWARD::render(
 		dL_dmean2D,
 		dL_dconic2D,
 		dL_dopacity,
-		dL_dcolors
+		dL_dcolors,
+		is_mask
 		);
+	}
+	else {
+		renderCUDA<NUM_CHANNELS> << <grid, block >> >(
+		ranges,
+		point_list,
+		W, H,
+		bg_color,
+		means2D,
+		conic_opacity,
+		colors,
+		final_Ts,
+		n_contrib,
+		dL_dpixels,
+		dL_dmean2D,
+		dL_dconic2D,
+		dL_dopacity,
+		dL_dcolors,
+		is_mask
+		);
+	}
 }
