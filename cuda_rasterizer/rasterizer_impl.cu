@@ -218,7 +218,7 @@ int CudaRasterizer::Rasterizer::forward(
 	float* out_color,
 	int* radii,
 	bool debug,
-	bool is_mask)
+	int render_type)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
 	const float focal_x = width / (2.0f * tan_fovx);
@@ -240,15 +240,19 @@ int CudaRasterizer::Rasterizer::forward(
 	char* img_chunkptr = imageBuffer(img_chunk_size);
 	ImageState imgState = ImageState::fromChunk(img_chunkptr, width * height);
 
-	if (is_mask) {
+	if (render_type == 1) {
 		if (NUM_CHANNELS_FOR_MASK != 1 && colors_precomp == nullptr)
 		{
 			throw std::runtime_error("For mask, NUM_CHANNELS must be 1 and you must provide precomputed Gaussian colors!");
 		}
-	} else {
+	} else if(render_type == 0) {
 		if (NUM_CHANNELS != 3 && colors_precomp == nullptr)
 		{
 			throw std::runtime_error("For non-RGB, provide precomputed Gaussian colors!");
+		}
+	} else if(render_type == 2) {
+		if (colors_precomp == nullptr) {
+			throw std::runtime_error("For feature, provide precomputed Gaussian colors!");
 		}
 	}
 
@@ -338,7 +342,7 @@ int CudaRasterizer::Rasterizer::forward(
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		background,
-		out_color, is_mask), debug)
+		out_color, render_type), debug)
 
 	return num_rendered;
 }
@@ -375,7 +379,7 @@ void CudaRasterizer::Rasterizer::backward(
 	float* dL_dscale,
 	float* dL_drot,
 	bool debug,
-	bool is_mask)
+	int render_type)
 {
 	GeometryState geomState = GeometryState::fromChunk(geom_buffer, P);
 	BinningState binningState = BinningState::fromChunk(binning_buffer, R);
@@ -412,7 +416,7 @@ void CudaRasterizer::Rasterizer::backward(
 		(float3*)dL_dmean2D,
 		(float4*)dL_dconic,
 		dL_dopacity,
-		dL_dcolor, is_mask), debug)
+		dL_dcolor, render_type), debug)
 
 	// Take care of the rest of preprocessing. Was the precomputed covariance
 	// given to us or a scales/rot pair? If precomputed, pass that. If not,

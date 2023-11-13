@@ -59,7 +59,7 @@ namespace FORWARD
 		float* final_T,
 		uint32_t* n_contrib,
 		const float* bg_color,
-		float* out_color, bool is_mask);
+		float* out_color, int render_type);
 }
 
 

@@ -413,7 +413,7 @@ renderCUDA(
 	float4* __restrict__ dL_dconic2D,
 	float* __restrict__ dL_dopacity,
 	float* __restrict__ dL_dcolors,
-	bool is_mask)
+	int render_type)
 {
 	// We rasterize again. Compute necessary block info.
 	auto block = cg::this_thread_block();
@@ -640,44 +640,68 @@ void BACKWARD::render(
 	float4* dL_dconic2D,
 	float* dL_dopacity,
 	float* dL_dcolors,
-	bool is_mask)
+	int render_type)
 {
-	if(is_mask) {
-	renderCUDA<NUM_CHANNELS_FOR_MASK> << <grid, block >> >(
-		ranges,
-		point_list,
-		W, H,
-		bg_color,
-		means2D,
-		conic_opacity,
-		colors,
-		final_Ts,
-		n_contrib,
-		dL_dpixels,
-		dL_dmean2D,
-		dL_dconic2D,
-		dL_dopacity,
-		dL_dcolors,
-		is_mask
-		);
-	}
-	else {
+	switch (render_type)
+	{
+	case 0:
 		renderCUDA<NUM_CHANNELS> << <grid, block >> >(
-		ranges,
-		point_list,
-		W, H,
-		bg_color,
-		means2D,
-		conic_opacity,
-		colors,
-		final_Ts,
-		n_contrib,
-		dL_dpixels,
-		dL_dmean2D,
-		dL_dconic2D,
-		dL_dopacity,
-		dL_dcolors,
-		is_mask
+			ranges,
+			point_list,
+			W, H,
+			bg_color,
+			means2D,
+			conic_opacity,
+			colors,
+			final_Ts,
+			n_contrib,
+			dL_dpixels,
+			dL_dmean2D,
+			dL_dconic2D,
+			dL_dopacity,
+			dL_dcolors,
+			render_type
 		);
+		break;
+	case 1:
+		renderCUDA<NUM_CHANNELS_FOR_MASK> << <grid, block >> >(
+			ranges,
+			point_list,
+			W, H,
+			bg_color,
+			means2D,
+			conic_opacity,
+			colors,
+			final_Ts,
+			n_contrib,
+			dL_dpixels,
+			dL_dmean2D,
+			dL_dconic2D,
+			dL_dopacity,
+			dL_dcolors,
+			render_type
+			);
+		break;
+	case 2:
+		renderCUDA<NUM_CHANNELS_FOR_FEATRURES> << <grid, block >> >(
+			ranges,
+			point_list,
+			W, H,
+			bg_color,
+			means2D,
+			conic_opacity,
+			colors,
+			final_Ts,
+			n_contrib,
+			dL_dpixels,
+			dL_dmean2D,
+			dL_dconic2D,
+			dL_dopacity,
+			dL_dcolors,
+			render_type
+			);
+		break;
+	default:
+		break;
 	}
 }

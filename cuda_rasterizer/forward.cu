@@ -385,22 +385,12 @@ void FORWARD::render(
 	float* final_T,
 	uint32_t* n_contrib,
 	const float* bg_color,
-	float* out_color, bool is_mask)
+	float* out_color, int render_type)
 {
-	if (is_mask)
-		renderCUDA<NUM_CHANNELS_FOR_MASK> << <grid, block >> > (
-			ranges,
-			point_list,
-			W, H,
-			means2D,
-			colors,
-			conic_opacity,
-			final_T,
-			n_contrib,
-			bg_color,
-			out_color);
-	else {
-	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
+	switch (render_type)
+	{
+	case 0:
+		renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
 		point_list,
 		W, H,
@@ -411,7 +401,38 @@ void FORWARD::render(
 		n_contrib,
 		bg_color,
 		out_color);
+		break;
+	case 1:
+		renderCUDA<NUM_CHANNELS_FOR_MASK> << <grid, block >> > (
+		ranges,
+		point_list,
+		W, H,
+		means2D,
+		colors,
+		conic_opacity,
+		final_T,
+		n_contrib,
+		bg_color,
+		out_color);
+		break;
+	case 2:
+		renderCUDA<NUM_CHANNELS_FOR_FEATRURES> << <grid, block >> > (
+		ranges,
+		point_list,
+		W, H,
+		means2D,
+		colors,
+		conic_opacity,
+		final_T,
+		n_contrib,
+		bg_color,
+		out_color);
+		break;
+	default:
+		break;
 	}
+
+	
 }
 
 void FORWARD::preprocess(int P, int D, int M,

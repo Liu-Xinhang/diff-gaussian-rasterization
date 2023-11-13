@@ -36,7 +36,7 @@ namespace BACKWARD
 		float4* dL_dconic2D,
 		float* dL_dopacity,
 		float* dL_dcolors,
-		bool is_mask);
+		int render_type);
 
 	void preprocess(
 		int P, int D, int M,

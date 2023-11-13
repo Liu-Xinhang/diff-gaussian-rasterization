@@ -53,7 +53,7 @@ RasterizeGaussiansCUDA(
     const torch::Tensor& campos,
     const bool prefiltered,
     const bool debug,
-    const bool is_mask)
+    const int render_type)
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
     AT_ERROR("means3D must have dimensions (num_points, 3)");
@@ -66,11 +66,19 @@ RasterizeGaussiansCUDA(
   auto int_opts = means3D.options().dtype(torch::kInt32);
   auto float_opts = means3D.options().dtype(torch::kFloat32);
   int _num;
-  if(is_mask) {
-    _num = NUM_CHANNELS_FOR_MASK;
-  }
-  else{
+  switch (render_type)
+  {
+  case 0:
     _num = NUM_CHANNELS;
+    break;
+  case 1:
+    _num = NUM_CHANNELS_FOR_MASK;
+    break;
+  case 2:
+    _num = NUM_CHANNELS_FOR_FEATRURES;
+    break;
+  default:
+    break;
   }
   torch::Tensor out_color = torch::full({_num, H, W}, 0.0, float_opts);
   torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
@@ -117,7 +125,7 @@ RasterizeGaussiansCUDA(
         out_color.contiguous().data<float>(),
         radii.contiguous().data<int>(),
         debug,
-        is_mask);
+        render_type);
   }
   return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer);
 }
@@ -145,7 +153,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     const torch::Tensor& binningBuffer,
     const torch::Tensor& imageBuffer,
     const bool debug,
-    const bool is_mask) 
+    const int render_type) 
 {
   const int P = means3D.size(0);
   const int H = dL_dout_color.size(1);
@@ -160,11 +168,19 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
   torch::Tensor dL_dmeans3D = torch::zeros({P, 3}, means3D.options());
   torch::Tensor dL_dmeans2D = torch::zeros({P, 3}, means3D.options());
   int _num;
-  if(is_mask) {
-    _num = NUM_CHANNELS_FOR_MASK;
-  }
-  else{
+  switch (render_type)
+  {
+  case 0:
     _num = NUM_CHANNELS;
+    break;
+  case 1:
+    _num = NUM_CHANNELS_FOR_MASK;
+    break;
+  case 2:
+    _num = NUM_CHANNELS_FOR_FEATRURES;
+    break;
+  default:
+    break;
   }
   torch::Tensor dL_dcolors = torch::zeros({P, _num}, means3D.options());
   torch::Tensor dL_dconic = torch::zeros({P, 2, 2}, means3D.options());
@@ -206,7 +222,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
       dL_dscales.contiguous().data<float>(),
       dL_drotations.contiguous().data<float>(),
       debug,
-      is_mask);
+      render_type);
   }
 
   return std::make_tuple(dL_dmeans2D, dL_dcolors, dL_dopacity, dL_dmeans3D, dL_dcov3D, dL_dsh, dL_dscales, dL_drotations);
