@@ -13,9 +13,9 @@
 #define CUDA_RASTERIZER_CONFIG_H_INCLUDED
 
 #define NUM_CHANNELS 3 // Default 3, RGB
-#define NUM_CHANNELS_FOR_FEATRURES 64
+#define NUM_CHANNELS_FOR_FEATRURES 256
 #define NUM_CHANNELS_FOR_MASK 1
-#define BLOCK_X 8
-#define BLOCK_Y 8
+#define BLOCK_X 4
+#define BLOCK_Y 4
 
 #endif
